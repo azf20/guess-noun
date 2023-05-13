@@ -19,7 +19,7 @@ if (!polygonApiKey) {
 }
 
 const config: HardhatUserConfig = {
-  solidity: '0.8.18',
+  solidity: '0.8.19',
   defaultNetwork: 'hardhat',
   etherscan: {
     apiKey: {
@@ -41,9 +41,14 @@ const config: HardhatUserConfig = {
       url: 'https://rpc.sepolia.org/',
       accounts: [deployerKey as string],
     },
-    mumbai: {
-      chainId: 80001,
-      url: 'https://rpc-mumbai.maticvigil.com/',
+    optimismGoerli: {
+      chainId: 420,
+      url: 'https://goerli.optimism.io',
+      accounts: [deployerKey as string],
+    },
+    optimism: {
+      chainId: 420,
+      url: 'https://opt-mainnet.g.alchemy.com/v2/${}',
       accounts: [deployerKey as string],
     },
   },
