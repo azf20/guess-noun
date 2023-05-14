@@ -20,6 +20,10 @@ function SignInButton() {
         const res = await fetch('/api/account')
         const json = await res.json()
         if (json.address) {
+          console.log(json.address, address)
+          if (json.address !== address) {
+            logout()
+          }
           setLoggedInAddress(json.address)
         }
       } catch (_error) {}
@@ -31,7 +35,7 @@ function SignInButton() {
     // 2. window is focused (in case user logs out of another window)
     window.addEventListener('focus', handler)
     return () => window.removeEventListener('focus', handler)
-  }, [])
+  }, [address])
 
   const signIn = async () => {
     try {

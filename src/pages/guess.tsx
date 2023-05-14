@@ -1,4 +1,4 @@
-import { useAccount, useNetwork, useSignMessage } from 'wagmi'
+import { Address, useAccount, useNetwork, useSignMessage, useContractReads } from 'wagmi'
 import { SiweMessage } from 'siwe'
 import { useEffect, useState } from 'react'
 import { SITE_NAME } from 'utils/config'
@@ -18,11 +18,19 @@ import {
   GridItem,
   Grid,
   SimpleGrid,
+  Select,
+  NumberDecrementStepper,
+  NumberIncrementStepper,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  Flex,
 } from '@chakra-ui/react'
-import { LinkComponent } from 'components/layout/LinkComponent'
-import { NextSeo } from 'next-seo'
 import { HeadingComponent } from 'components/layout/HeadingComponent'
-import { generateSvgs } from 'utils/game'
+import { generateSvgs, getTraits, NAMES } from 'utils/game'
+import { guessNounABI, guessNounAddress } from 'abis'
+import useSWR from 'swr'
+import { ethers } from 'ethers'
 
 function SignInButton() {
   const [loggedInAddress, setLoggedInAddress] = useState('')
@@ -37,6 +45,10 @@ function SignInButton() {
         const res = await fetch('/api/account')
         const json = await res.json()
         if (json.address) {
+          console.log(json.address, address)
+          if (json.address !== address) {
+            logout()
+          }
           setLoggedInAddress(json.address)
         }
       } catch (_error) {}
@@ -48,7 +60,7 @@ function SignInButton() {
     // 2. window is focused (in case user logs out of another window)
     window.addEventListener('focus', handler)
     return () => window.removeEventListener('focus', handler)
-  }, [])
+  }, [address])
 
   const signIn = async () => {
     try {
@@ -100,70 +112,154 @@ function SignInButton() {
 
   return (
     <div>
-      <HeadingComponent as="h3">Try it out</HeadingComponent>
-      <p>
-        <Button onClick={signIn}>Sign-in With Ethereum</Button>
-      </p>
+      {loggedInAddress ? (
+        <Flex gap={2} align={'center'}>
+          <p>Signed in as {loggedInAddress}</p>
 
-      {loggedInAddress && (
-        <div>
-          <HeadingComponent as="h3">Signed in as</HeadingComponent>
-          <p>{loggedInAddress}</p>
-          <p>
-            <Button onClick={logout}>Sign Out</Button>
-          </p>
-        </div>
+          <Button onClick={logout}>Sign Out</Button>
+        </Flex>
+      ) : (
+        <p>
+          <Button onClick={signIn}>Sign-in With Ethereum</Button>
+        </p>
       )}
     </div>
   )
 }
 
+type Choice = {
+  player: Address | undefined
+  choice: string
+}
+
 export default function SiweExample() {
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
+  const [selectedTrait, setSelectedTrait] = useState('')
+  const [gameId, setGameId] = useState('0')
+  const [player1, setPlayer1] = useState('')
+  const [player2, setPlayer2] = useState('')
+  const [playerChoices, setPlayerChoices] = useState<Choice[]>([])
 
-  const nounSvgs = generateSvgs('2')
+  const chainId = '31337'
 
-  console.log(nounSvgs)
+  const { chain } = useNetwork()
+
+  const makeChoice = async (choice: string) => {
+    setPlayerChoices([...playerChoices, { choice, player: address }])
+  }
+
+  const nounSvgs = generateSvgs(gameId)
+  const traits = getTraits(gameId)
+
+  const allTraits = [...traits[0].traits, ...traits[1].traits, ...traits[2].traits, ...traits[3].traits].filter((t) => t.filename)
+
+  const guessNounConfig = chain && {
+    address: guessNounAddress[chainId],
+    abi: guessNounABI,
+  }
+
+  const { data, isError, isLoading } = useContractReads({
+    contracts: [
+      {
+        ...guessNounConfig,
+        functionName: 'game',
+      },
+      {
+        ...guessNounConfig,
+        functionName: 'playersRegistered',
+      },
+      {
+        ...guessNounConfig,
+        functionName: 'startTimestamp',
+      },
+    ],
+  })
+
+  const fetcher = (url: string) =>
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }).then((res) => res.json())
+  const { data: salt, error } = useSWR(data ? `/api/guess/${address}/${data[0].result}` : undefined, fetcher)
+
+  console.log(salt)
+
+  const signMessage = useSignMessage({
+    message: 'Message to sign',
+  })
+
+  function choose(choice: string) {
+    const choiceMessage =
+      data &&
+      salt &&
+      ethers.utils.solidityPack(['address', 'uint256', 'uint256', 'bytes32'], [guessNounAddress[chainId], data[0].result, choice, salt.message])
+
+    signMessage.signMessage({ message: choiceMessage })
+  }
 
   if (isConnected) {
     return (
       <div>
-        <NextSeo title="Sign-in With Ethereum" />
-        <HeadingComponent as="h2">Sign-in with Ethereum</HeadingComponent>
-        <p>
-          Sign-in with Ethereum is a new form of authentication that enables users to control their digital identity with their Ethereum account and
-          ENS profile instead of relying on a traditional intermediary.
-        </p>
-
-        <UnorderedList>
-          <ListItem>
-            <LinkComponent href="https://login.xyz/">More info</LinkComponent>
-          </ListItem>
-          <ListItem>
-            <LinkComponent href="https://wagmi.sh/examples/sign-in-with-ethereum">Wagmi Docs</LinkComponent>
-          </ListItem>
-        </UnorderedList>
-
         <SignInButton />
-        <SimpleGrid columns={3}>
-          {nounSvgs.map((noun, i) => (
-            <Card maxW="sm" key={i}>
-              <CardBody>
-                <div dangerouslySetInnerHTML={{ __html: noun.svg }}></div>
-                <Stack mt="6" spacing="3">
-                  <Heading size="md">Living room Sofa</Heading>
-                </Stack>
-              </CardBody>
-              <Divider />
-              <CardFooter>
-                <ButtonGroup spacing="2">
-                  <Button variant="solid" colorScheme="blue">
-                    GUESS
-                  </Button>
-                </ButtonGroup>
-              </CardFooter>
-            </Card>
-          ))}
+        <NumberInput
+          value={gameId}
+          onChange={(e) => {
+            setGameId(e)
+          }}>
+          <NumberInputField />
+          <NumberInputStepper>
+            <NumberIncrementStepper />
+            <NumberDecrementStepper />
+          </NumberInputStepper>
+        </NumberInput>
+        <Select
+          placeholder="Select trait"
+          value={selectedTrait}
+          onChange={(e) => {
+            setSelectedTrait(e.target.value)
+          }}>
+          {allTraits.map((trait, i) => {
+            return (
+              <option value={trait.filename} key={i}>
+                {trait.filename}
+              </option>
+            )
+          })}
+        </Select>
+        <Button onClick={() => makeChoice(selectedTrait)}>Make Choice</Button>
+        <SimpleGrid columns={4}>
+          {nounSvgs.map((noun, i) => {
+            let blob = new Blob([noun.svg], { type: 'image/svg+xml' })
+            let url = URL.createObjectURL(blob)
+            return (
+              <Card maxW="sm" key={i}>
+                <CardBody>
+                  <Image src={url} alt={NAMES[i]} />
+                  <Stack mt="6" spacing="3">
+                    <Heading size="md">{`${NAMES[i]} ${noun.parts.map((p) => p.filename).includes(selectedTrait)}`}</Heading>
+                  </Stack>
+                </CardBody>
+                <Divider />
+                <CardFooter>
+                  <ButtonGroup spacing="2">
+                    <Button
+                      variant="solid"
+                      colorScheme="blue"
+                      onClick={() => {
+                        choose(noun.id)
+                      }}>
+                      PICK
+                    </Button>
+                    {/* <Button variant="solid" colorScheme="blue">
+                      GUESS
+                    </Button> */}
+                  </ButtonGroup>
+                </CardFooter>
+              </Card>
+            )
+          })}
         </SimpleGrid>
       </div>
     )

@@ -1,11 +1,7 @@
 {
   "extends": "@tsconfig/next/tsconfig.json",
   "compilerOptions": {
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "target": "es6",
     "baseUrl": "./src"
   },
   "ts-node": {

@@ -5,7 +5,6 @@ import { buildSVG } from '@nouns/sdk'
 import { guessNounAddress } from 'abis'
 
 const { bgcolors, palette, images } = ImageData
-const { bodies, accessories, heads, glasses } = images
 
 export function generateSecretSalt(gameId: BigNumber, player: Address) {
   return ethers.utils.solidityKeccak256(['uint256', 'address', 'string'], [gameId, player, process.env.SALT_SECRET])
@@ -25,9 +24,9 @@ export function getTraits(gameId: string) {
     const options = Array.from({ length: images[type].length }, (value, index) => index)
     const result = new Array(count).fill(undefined).map((_, i) => {
       const selectedIndex = getPseudorandomPart(seed, options.length, index * 10 + i)
-      const trait = options[selectedIndex]
+      const traitIndex = options[selectedIndex]
       options.splice(selectedIndex, 1)
-      return images[type][trait]
+      return { traitIndex, ...images[type][traitIndex] }
     })
     return { type, traits: result }
   })
@@ -36,20 +35,16 @@ export function getTraits(gameId: string) {
 
 export const TRAITRIX = [
   [0, 4, 0, 3],
-
-  [0, 2, 4, 3],
   [3, 2, 0, 1],
+  [1, 1, 1, 1],
   [3, 0, 3, 3],
   [1, 0, 3, 2],
-  [1, 1, 1, 1],
   [0, 0, 2, 3],
   [1, 2, 0, 3],
   [2, 0, 1, 3],
   [2, 4, 3, 0],
-  [0, 3, 1, 2],
   [0, 2, 4, 3],
   [2, 2, 4, 0],
-  [2, 3, 0, 1],
   [3, 0, 2, 1],
   [3, 1, 0, 2],
   [1, 3, 2, 0],
@@ -77,58 +72,40 @@ export function generateNounTraits(gameId: string) {
 export function generateSvgs(gameId: string) {
   const nouns = generateNounTraits(gameId)
   return nouns.map((noun) => {
+    let id = ethers.BigNumber.from(noun.body.traitIndex)
+    id = id.shl(16)
+    id = id.or(noun.accessory.traitIndex)
+    id = id.shl(16)
+    id = id.or(noun.head.traitIndex)
+    id = id.shl(16)
+    id = id.or(noun.glasses.traitIndex)
     return {
       parts: [noun.body, noun.accessory, noun.head, noun.glasses],
       svg: buildSVG([noun.body, noun.accessory, noun.head, noun.glasses], palette, bgcolors[0]),
+      id: id.toString(),
     }
   })
 }
 
 export const NAMES = [
-  'Al',
-  'Amy',
-  'Anita',
-  'Anne',
-  'Ben',
-  'Bernard',
-  'Betty',
-  'Bill',
-  'Carmen',
-  'Charles',
-  'Claire',
-  'Daniel',
-  'David',
-  'Emma',
-  'Eric',
-  'Farah',
-  'Frank',
-  'Gabe',
-  'George',
-  'Herman',
-  'Holly',
-  'Joe',
-  'Jordan',
-  'Katie',
-  'Laura',
-  'Leo',
-  'Lily',
-  'Liz',
-  'Maria',
-  'Max',
-  'Mia',
-  'Mike',
-  'Nick',
-  'Olivia',
-  'Paul',
-  'Peter',
-  'Philip',
-  'Rachel',
-  'Richard',
-  'Robert',
-  'Sally',
-  'Sam',
-  'Sofia',
-  'Susan',
-  'Tom',
-  'Victor',
+  'Jensen',
+  'Jaylon',
+  'Steve',
+  'Madilyn',
+  'Hayley',
+  'Jaidyn',
+  'Julianne',
+  'Gideon',
+  'Nolan',
+  'Giovanna',
+  'Myah',
+  'Garrett',
+  'Baylee',
+  'Timothy',
+  'Arely',
+  'Hugo',
+  'Asher',
+  'Bailey',
+  'Dalton',
+  'Belinda',
 ]

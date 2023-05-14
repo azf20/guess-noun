@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { generateNonce } from 'pages/guess'
+import { generateNonce } from 'siwe'
 import { withSessionRoute } from 'utils/server'
 
 export default withSessionRoute(async function handler(req: NextApiRequest, res: NextApiResponse) {

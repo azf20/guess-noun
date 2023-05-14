@@ -14,11 +14,8 @@ export default defineConfig({
     hardhat({
       project: './contracts',
       deployments: {
-        Message: {
-          11155111: '0xcc5a0d6268d70811edad77799f2168afe6382e89',
-        },
         GuessNoun: {
-          31337: '0x0BFC626B583e93A5F793Bc2cAa195BDBB2ED9F20',
+          31337: '0x1c32f8818e38a50d37d1E98c72B9516a50985227',
         },
       },
     }),

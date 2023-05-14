@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { SiweMessage } from 'pages/guess'
+import { SiweMessage } from 'siwe'
 import { withSessionRoute } from 'utils/server'
 
 export default withSessionRoute(async function handler(req: NextApiRequest, res: NextApiResponse) {

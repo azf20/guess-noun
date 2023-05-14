@@ -3,3 +3,13 @@ export interface State<T> {
   data?: T
   error?: string
 }
+
+export type Game = {
+  id: string
+  choices: GameChoice[]
+}
+
+export type GameChoice = {
+  player: string
+  choice: string
+}
